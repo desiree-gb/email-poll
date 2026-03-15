@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poll Results</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #F5EFEB;
+  color: #1a1a1a;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 34px;
+  max-width: 560px;
+  width: 100%;
+  border: 1px solid #E8E0DA;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 0;
+  color: #999;
+  font-size: 16px;
+}
+
+.confirm {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.confirm-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid #447E7E;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.confirm-icon svg { width: 22px; height: 22px; }
+
+.confirm-text {
+  font-size: 19px;
+  color: #333;
+  font-weight: 500;
+}
+
+.poll-box {
+  border: 1px solid #E8E0DA;
+  border-radius: 14px;
+  padding: 26px 22px;
+}
+
+.question {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  line-height: 1.4;
+  color: #1a1a1a;
+}
+
+.option {
+  border: 1px solid #E8E0DA;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.option.selected {
+  background: #EDF5F5;
+  border-color: #A3C4C4;
+}
+
+.option-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.option-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.option-label {
+  font-size: 17px;
+  color: #555;
+  font-weight: 400;
+}
+
+.option.selected .option-label {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.option-pct {
+  font-size: 15px;
+  color: #999;
+}
+
+.option.selected .option-pct { color: #555; }
+
+.check { width: 24px; height: 24px; flex-shrink: 0; }
+
+.bar-track {
+  height: 5px;
+  background: #eee;
+  border-radius: 3px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #447E7E;
+  transition: width 0.5s ease;
+}
+
+.option.selected .bar-fill { background: #356565; }
+
+.feedback-section { margin-top: 26px; }
+
+.feedback-label {
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.feedback-box {
+  width: 100%;
+  min-height: 110px;
+  padding: 14px 16px;
+  font-size: 17px;
+  font-family: inherit;
+  border: 2px solid #A3C4C4;
+  border-radius: 10px;
+  resize: vertical;
+  outline: none;
+  color: #333;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.feedback-box:focus { border-color: #447E7E; }
+.feedback-box::placeholder { color: #aaa; }
+
+.continue-btn {
+  display: block;
+  width: 100%;
+  margin-top: 22px;
+  padding: 18px;
+  background: #447E7E;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+  text-align: center;
+  text-decoration: none;
+}
+
+.continue-btn:hover { background: #356565; }
+
+.error-card {
+  text-align: center;
+}
+
+.error-card h1 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.error-card p {
+  color: #666;
+  font-size: 15px;
+}
+
+.hidden { display: none; }
+
+@media (max-width: 600px) {
+  body { padding: 0; align-items: flex-start; }
+  .card {
+    border-radius: 0;
+    border: none;
+    max-width: 100%;
+    padding: 32px 24px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="loading" id="loadingState">Loading poll...</div>
+
+  <div id="resultsState" class="hidden">
+    <div class="confirm" id="confirmSection">
+      <div class="confirm-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#447E7E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <div class="confirm-text">Your response has been recorded.</div>
+    </div>
+
+    <div class="poll-box">
+      <div class="question" id="questionText"></div>
+      <div id="optionsContainer"></div>
+    </div>
+
+    <div id="feedbackSection" class="hidden">
+      <div class="feedback-section">
+        <div class="feedback-label">Additional feedback</div>
+        <textarea class="feedback-box" id="feedbackText" placeholder="Elaborate on your answer, or just leave some general feedback..."></textarea>
+      </div>
+      <button class="continue-btn" id="continueBtn" onclick="handleContinue()">Continue</button>
+    </div>
+  </div>
+
+  <div id="errorState" class="hidden error-card">
+    <h1>Oops</h1>
+    <p id="errorMessage"></p>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://script.google.com/a/macros/gabbybernstein.com/s/AKfycbwjYYVlvUdehZ6rtvR78mc9spqlBUQv1x0uyjpe_iNg3TsPq_Y9aXCGP61AtKpgYe60Sg/exec";
+
+var params = new URLSearchParams(window.location.search);
+var pollId = params.get("pollId") || "";
+var vote = (params.get("vote") || "").toUpperCase();
+var email = params.get("email") || "";
+var pollData = null;
+
+function init() {
+  if (!pollId) {
+    showError("No poll ID provided.");
+    return;
+  }
+
+  var url = API_URL + "?pollId=" + encodeURIComponent(pollId);
+
+  if (vote && ["A", "B", "C", "D"].indexOf(vote) !== -1) {
+    url += "&action=vote&vote=" + encodeURIComponent(vote);
+  } else {
+    url += "&action=results";
+  }
+
+  if (email) {
+    url += "&email=" + encodeURIComponent(email);
+  }
+
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success || !data.poll) {
+        showError("Poll not found: " + pollId);
+        return;
+      }
+      pollData = data.poll;
+      renderResults(data.poll, data.counts, vote);
+    })
+    .catch(function(err) {
+      showError("Something went wrong. Please try again.");
+    });
+}
+
+function renderResults(poll, counts, selectedVote) {
+  document.getElementById("loadingState").classList.add("hidden");
+  document.getElementById("resultsState").classList.remove("hidden");
+
+  if (!selectedVote) {
+    document.getElementById("confirmSection").classList.add("hidden");
+  }
+
+  document.getElementById("questionText").textContent = poll.question;
+
+  var total = counts.A + counts.B + counts.C + counts.D;
+  var container = document.getElementById("optionsContainer");
+  container.innerHTML = "";
+
+  var options = [
+    { key: "A", label: poll.optionA },
+    { key: "B", label: poll.optionB },
+    { key: "C", label: poll.optionC },
+    { key: "D", label: poll.optionD }
+  ];
+
+  for (var i = 0; i < options.length; i++) {
+    var opt = options[i];
+    if (!opt.label || opt.label.trim() === "") continue;
+
+    var pct = total > 0 ? Math.round((counts[opt.key] / total) * 100) : 0;
+    var isSelected = (opt.key === selectedVote);
+
+    var div = document.createElement("div");
+    div.className = isSelected ? "option selected" : "option";
+
+    var checkSvg = isSelected
+      ? '<svg class="check" viewBox="0 0 24 24" fill="none" stroke="#447E7E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+      : "";
+
+    div.innerHTML = '<div class="option-content">'
+      + '<div class="option-left">'
+      + '<span class="option-label">' + escapeHtml(opt.label) + '</span>'
+      + '<span class="option-pct">(' + pct + '%)</span>'
+      + '</div>'
+      + checkSvg
+      + '</div>'
+      + '<div class="bar-track"><div class="bar-fill" style="width: ' + Math.max(pct, 1) + '%;"></div></div>';
+
+    container.appendChild(div);
+  }
+
+  if (poll.showFeedback) {
+    document.getElementById("feedbackSection").classList.remove("hidden");
+    if (poll.continueText) {
+      document.getElementById("continueBtn").textContent = poll.continueText;
+    }
+  }
+}
+
+function handleContinue() {
+  var fb = document.getElementById("feedbackText").value.trim();
+  var btn = document.getElementById("continueBtn");
+  var continueUrl = pollData ? pollData.continueUrl : "";
+
+  if (fb && pollData) {
+    btn.textContent = "Saving...";
+    btn.style.opacity = "0.7";
+
+    var saveUrl = API_URL
+      + "?action=feedback"
+      + "&pollId=" + encodeURIComponent(pollData.pollId)
+      + "&email=" + encodeURIComponent(email)
+      + "&feedback=" + encodeURIComponent(fb);
+
+    fetch(saveUrl)
+      .then(function() {
+        if (continueUrl) window.location.href = continueUrl;
+      })
+      .catch(function() {
+        if (continueUrl) window.location.href = continueUrl;
+      });
+  } else {
+    if (continueUrl) window.location.href = continueUrl;
+  }
+}
+
+function showError(msg) {
+  document.getElementById("loadingState").classList.add("hidden");
+  document.getElementById("errorState").classList.remove("hidden");
+  document.getElementById("errorMessage").textContent = msg;
+}
+
+function escapeHtml(text) {
+  var d = document.createElement("div");
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+init();
+</script>
+</body>
+</html>
